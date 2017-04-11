@@ -35,18 +35,18 @@
 
     // custom callbacks
     var callbacks = {};
-    callbacks["required"] = function () {
-        var fieldEl = this.getFieldEl();
-
-        // required fields get a little star in their label
-        var label = $(fieldEl).find("label.alpaca-control-label");
-        $('<span class="alpaca-icon-required"></span>').prependTo(label);
-
-    };
+    // callbacks["required"] = function () {
+    //     var fieldEl = this.getFieldEl();
+    //
+    //     // required fields get a little star in their label
+    //     var label = $(fieldEl).find("label.alpaca-control-label");
+    //     $('<span class="alpaca-icon-required"></span>').prependTo(label);
+    //
+    // };
     callbacks["invalid"] = function () {
         // if this is a control field, add class "has-error"
         if (this.isControlField) {
-            $(this.getFieldEl()).addClass('mdl-textfield__error');
+            $(this.getFieldEl()).append('<span class="mdl-textfield__error"></span>');
         }
 
         /*
@@ -71,6 +71,7 @@
         // controlEl
         var controlEl = this.getControlEl();
 
+        $(fieldEl).addClass('mdl-textfield mdl-js-textfield mdl-textfield--floating-label');
         // all controls get the "form-control" class injected
         $(fieldEl).find("input").addClass("mdl-textfield__input");
         // $(fieldEl).find("textarea").addClass("form-control");
@@ -101,7 +102,7 @@
         // }
 
         // all control labels get class "control-label"
-        // $(fieldEl).find("label.alpaca-control-label").addClass("control-label");
+        $(fieldEl).find("label.alpaca-control-label").addClass("mdl-textfield__label");
 
         // if in horizontal mode, add a wrapper div (col-sm-9) and label gets (col-sm-3)
         // if (this.view.horizontal)
