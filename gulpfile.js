@@ -1,30 +1,30 @@
-var fs   = require("fs");
+var fs = require("fs");
 var gulp = require("gulp");
-var _    = require("lodash");
+var _ = require("lodash");
 
-var es   = require("event-stream");
+var es = require("event-stream");
 var exec = require("child_process").exec;
 
-var pkg  = require("./package.json");
+var pkg = require("./package.json");
 
 var path = require("path");
 
-var concat      = require("gulp-concat");
-var uglify      = require("gulp-uglify");
-var handlebars  = require("gulp-handlebars");
-var jshint      = require("gulp-jshint");
-var minifyCss   = require("gulp-minify-css");
-var rename      = require("gulp-rename");
-var clean       = require("gulp-clean");
-var declare     = require("gulp-declare");
-var notify      = require("gulp-notify");
+var concat = require("gulp-concat");
+var uglify = require("gulp-uglify");
+var handlebars = require("gulp-handlebars");
+var jshint = require("gulp-jshint");
+var minifyCss = require("gulp-minify-css");
+var rename = require("gulp-rename");
+var clean = require("gulp-clean");
+var declare = require("gulp-declare");
+var notify = require("gulp-notify");
 var runSequence = require("run-sequence");
-var nodemon     = require("gulp-nodemon");
-var watch       = require("gulp-watch");
-var wrap        = require('gulp-wrap');
-var bump        = require('gulp-bump');
-var wrapUmd     = require("gulp-wrap-umd");
-var awspublish  = require('gulp-awspublish');
+var nodemon = require("gulp-nodemon");
+var watch = require("gulp-watch");
+var wrap = require('gulp-wrap');
+var bump = require('gulp-bump');
+var wrapUmd = require("gulp-wrap-umd");
+var awspublish = require('gulp-awspublish');
 var gulpTemplate = require('gulp-template');
 
 // custom builder_helper stripper to remove builder helper functions
@@ -136,7 +136,8 @@ var paths = {
             "src/js/views/web.js",
             "src/js/views/jqueryui.js",
             "src/js/views/jquerymobile.js",
-            "src/js/views/bootstrap.js"
+            "src/js/views/bootstrap.js",
+            "src/js/views/material.js"
         ],
         web: [
             "build/tmp/templates-web.js",
@@ -160,6 +161,12 @@ var paths = {
             "build/tmp/scripts-core.js",
             "src/js/views/web.js",
             "src/js/views/bootstrap.js"
+        ],
+        material: [
+            "build/tmp/templates-material.js",
+            "build/tmp/scripts-core.js",
+            "src/js/views/web.js",
+            "src/js/views/material.js"
         ]
     },
     templates: {
@@ -192,6 +199,14 @@ var paths = {
             "src/templates/bootstrap-edit/**/*.html",
             "src/templates/bootstrap-create/**/*.html"
         ],
+        material: [
+            "src/templates/web-display/**/*.html",
+            "src/templates/web-edit/**/*.html",
+            "src/templates/web-create/**/*.html",
+            "src/templates/material-display/**/*.html",
+            "src/templates/material-edit/**/*.html",
+            "src/templates/material-create/**/*.html"
+        ],
         all: [
             "src/templates/**/*.html"
         ]
@@ -219,33 +234,35 @@ var paths = {
             "src/css/alpaca-core.css",
             "src/css/alpaca-fields.css",
             "src/css/alpaca-jqueryui.css"
-        ]
+        ],
+        material: [
+            "src/css/alpaca-core.css",
+            "src/css/alpaca-fields.css",
+            "src/css/alpaca-material.css"
+        ],
     }
 };
 
-gulp.task("clean", function() {
-    return gulp.src(["build", "dist"], {read: false})
+gulp.task("clean", function () {
+    return gulp.src(["build", "dist"], { read: false })
         .pipe(clean());
 });
 
-gulp.task("build-templates", function(cb)
-{
+gulp.task("build-templates", function (cb) {
     // Mozilla
-    var escapeRegExp = function(string){
-            return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    var escapeRegExp = function (string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     };
 
-    var processName = function(filepath)
-    {
+    var processName = function (filepath) {
         // strip .js from end
         var i = filepath.indexOf(".js");
-        if (i > -1)
-        {
+        if (i > -1) {
             filepath = filepath.substring(0, i);
         }
 
         // find "src/templates/" and index up
-        var z = filepath.indexOf(path.join('src','templates',path.sep));
+        var z = filepath.indexOf(path.join('src', 'templates', path.sep));
         filepath = filepath.substring(z + 14);
 
         // replace any "/" with .
@@ -256,7 +273,6 @@ gulp.task("build-templates", function(cb)
 
     //console.log("build-templates start");
     return es.concat(
-
         // web
         gulp.src(paths.templates["web"])
             .pipe(handlebars({ handlebars: require('handlebars') }))
@@ -303,15 +319,26 @@ gulp.task("build-templates", function(cb)
                 noRedeclare: true
             }))
             .pipe(concat('templates-jquerymobile.js'))
-            .pipe(gulp.dest('build/tmp/'))
+            .pipe(gulp.dest('build/tmp/')),
 
-    ).pipe(es.wait(function() {
+        // material
+        gulp.src(paths.templates["material"])
+            .pipe(handlebars({ handlebars: require('handlebars') }))
+            .pipe(wrap('Handlebars.template(<%= contents %>)'))
+            .pipe(declare({
+                namespace: 'HandlebarsPrecompiled',
+                processName: processName,
+                noRedeclare: true
+            }))
+            .pipe(concat('templates-material.js'))
+            .pipe(gulp.dest('build/tmp/'))
+    ).pipe(es.wait(function () {
         //console.log("build-templates complete");
         //cb();
-    })).pipe(notify({message: "Built Alpaca Templates"}));
+    })).pipe(notify({ message: "Built Alpaca Templates" }));
 });
 
-gulp.task("build-scripts", function(cb) {
+gulp.task("build-scripts", function (cb) {
 
     // alpaca umd
     var wrapper = "" + fs.readFileSync("./config/umd-wrapper.txt");
@@ -387,17 +414,31 @@ gulp.task("build-scripts", function(cb) {
         template: wrapper,
         defaultView: 'jquerymobile'
     };
+    var material_wrap = {
+        deps: [{
+            "name": "jquery",
+            "globalName": "jQuery",
+            "paramName": "$"
+        }, {
+            "name": "handlebars",
+            "globalName": "Handlebars",
+            "paramName": "Handlebars"
+        }],
+        namespace: "Alpaca",
+        exports: "Alpaca",
+        template: wrapper,
+        defaultView: 'material'
+    };
 
     //console.log("build-scripts start");
     // core
     var first = gulp.src(paths.scripts.core)
-                    .pipe(concat('scripts-core.js'))
-                    .pipe(gulp.dest('build/tmp'));
+        .pipe(concat('scripts-core.js'))
+        .pipe(gulp.dest('build/tmp'));
 
-    first.on("end", function() {
+    first.on("end", function () {
 
         es.concat(
-
             // web
             gulp.src(paths.scripts.web)
                 .pipe(concat('alpaca.js'))
@@ -407,12 +448,12 @@ gulp.task("build-scripts", function(cb) {
                 .pipe(uglify())
                 .pipe(gulp.dest('build/alpaca/web')),
             /*
-            gulp.src(paths.scripts.web)
-                .pipe(concat('alpaca-nobuilder.js'))
-                .pipe(wrap(web_wrap))
-                .pipe(stripper())
-                .pipe(gulp.dest('build/alpaca/web')),
-            */
+             gulp.src(paths.scripts.web)
+             .pipe(concat('alpaca-nobuilder.js'))
+             .pipe(wrap(web_wrap))
+             .pipe(stripper())
+             .pipe(gulp.dest('build/alpaca/web')),
+             */
 
             // bootstrap
             gulp.src(paths.scripts.bootstrap)
@@ -439,77 +480,92 @@ gulp.task("build-scripts", function(cb) {
                 .pipe(gulp.dest('build/alpaca/jquerymobile'))
                 .pipe(concat('alpaca.min.js'))
                 .pipe(uglify())
-                .pipe(gulp.dest('build/alpaca/jquerymobile'))
+                .pipe(gulp.dest('build/alpaca/jquerymobile')),
 
-        ).pipe(es.wait(function() {
+            // material
+            gulp.src(paths.scripts.material)
+                .pipe(concat('alpaca.js'))
+                .pipe(wrapUmd(material_wrap))
+                .pipe(gulp.dest('build/alpaca/material'))
+                .pipe(concat('alpaca.min.js'))
+                .pipe(uglify())
+                .pipe(gulp.dest('build/alpaca/material'))
+        ).pipe(es.wait(function () {
 
             //console.log("build-scripts completed");
             cb();
 
-        })).pipe(notify({message: "Built Alpaca JS"}));
+        })).pipe(notify({ message: "Built Alpaca JS" }));
     });
 });
 
-gulp.task("build-styles", function(cb) {
+gulp.task("build-styles", function (cb) {
 
     //console.log("build-styles start");
     return es.concat(
+        // web
+        gulp.src(paths.styles.web)
+            .pipe(concat('alpaca.css'))
+            .pipe(gulp.dest('build/alpaca/web'))
+            .pipe(rename({ suffix: ".min" }))
+            .pipe(minifyCss())
+            .pipe(gulp.dest('build/alpaca/web')),
+        gulp.src("src/css/images/**")
+            .pipe(gulp.dest('./build/alpaca/web/images')),
 
-            // web
-            gulp.src(paths.styles.web)
-                .pipe(concat('alpaca.css'))
-                .pipe(gulp.dest('build/alpaca/web'))
-                .pipe(rename({suffix: ".min"}))
-                .pipe(minifyCss())
-                .pipe(gulp.dest('build/alpaca/web')),
-            gulp.src("src/css/images/**")
-                .pipe(gulp.dest('./build/alpaca/web/images')),
+        // bootstrap
+        gulp.src(paths.styles.bootstrap)
+            .pipe(concat('alpaca.css'))
+            .pipe(gulp.dest('build/alpaca/bootstrap'))
+            .pipe(rename({ suffix: ".min" }))
+            .pipe(minifyCss())
+            .pipe(gulp.dest('build/alpaca/bootstrap')),
+        gulp.src("src/css/images/**")
+            .pipe(gulp.dest('./build/alpaca/bootstrap/images')),
 
-            // bootstrap
-            gulp.src(paths.styles.bootstrap)
-                .pipe(concat('alpaca.css'))
-                .pipe(gulp.dest('build/alpaca/bootstrap'))
-                .pipe(rename({suffix: ".min"}))
-                .pipe(minifyCss())
-                .pipe(gulp.dest('build/alpaca/bootstrap')),
-            gulp.src("src/css/images/**")
-                .pipe(gulp.dest('./build/alpaca/bootstrap/images')),
+        // jqueryui
+        gulp.src(paths.styles.jqueryui)
+            .pipe(concat('alpaca.css'))
+            .pipe(gulp.dest('build/alpaca/jqueryui'))
+            .pipe(rename({ suffix: ".min" }))
+            .pipe(minifyCss())
+            .pipe(gulp.dest('build/alpaca/jqueryui')),
+        gulp.src("src/css/images/**")
+            .pipe(gulp.dest('./build/alpaca/jqueryui/images')),
 
-            // jqueryui
-            gulp.src(paths.styles.jqueryui)
-                .pipe(concat('alpaca.css'))
-                .pipe(gulp.dest('build/alpaca/jqueryui'))
-                .pipe(rename({suffix: ".min"}))
-                .pipe(minifyCss())
-                .pipe(gulp.dest('build/alpaca/jqueryui')),
-            gulp.src("src/css/images/**")
-                .pipe(gulp.dest('./build/alpaca/jqueryui/images')),
+        // jquerymobile
+        gulp.src(paths.styles.jquerymobile)
+            .pipe(concat('alpaca.css'))
+            .pipe(gulp.dest('build/alpaca/jquerymobile'))
+            .pipe(rename({ suffix: ".min" }))
+            .pipe(minifyCss())
+            .pipe(gulp.dest('build/alpaca/jquerymobile')),
+        gulp.src("src/css/images/**")
+            .pipe(gulp.dest('./build/alpaca/jquerymobile/images')),
 
-            // jquerymobile
-            gulp.src(paths.styles.jquerymobile)
-                .pipe(concat('alpaca.css'))
-                .pipe(gulp.dest('build/alpaca/jquerymobile'))
-                .pipe(rename({suffix: ".min"}))
-                .pipe(minifyCss())
-                .pipe(gulp.dest('build/alpaca/jquerymobile')),
-            gulp.src("src/css/images/**")
-                .pipe(gulp.dest('./build/alpaca/jquerymobile/images'))
+        // material
+        gulp.src(paths.styles.material)
+            .pipe(concat('alpaca.css'))
+            .pipe(gulp.dest('build/alpaca/material'))
+            .pipe(rename({ suffix: ".min" }))
+            .pipe(minifyCss())
+            .pipe(gulp.dest('build/alpaca/material')),
+        gulp.src("src/css/images/**")
+            .pipe(gulp.dest('./build/alpaca/material/images'))
+    ).pipe(es.wait(function () {
 
-        ).pipe(es.wait(function() {
+        //console.log("build-styles completed");
+        //cb();
 
-            //console.log("build-styles completed");
-            //cb();
-
-        })).pipe(notify({message: "Built Alpaca CSS"}));
+    })).pipe(notify({ message: "Built Alpaca CSS" }));
 });
 
-gulp.task("build-site", function(cb)
-{
+gulp.task("build-site", function (cb) {
     console.log("build-site start");
 
     var now = new Date();
     var datetime = "";
-    datetime += (now.getMonth()+1) + "/" + now.getDate() + "/" + now.getFullYear();
+    datetime += (now.getMonth() + 1) + "/" + now.getDate() + "/" + now.getFullYear();
     //datetime += " ";
     //datetime += now.getHours()+':'+now.getMinutes()+':'+now.getSeconds();
 
@@ -517,15 +573,14 @@ gulp.task("build-site", function(cb)
     fs.writeFileSync("./_custom_config.yml", "alpaca_version: " + pkg.version + "\r\nalpaca_date: " + datetime);
 
     var cmd = "jekyll build --config ./site/_config.yml,./_custom_config.yml -s ./site -d ./build/site --trace";
-    exec(cmd, function(err, stdout, stderr) {
+    exec(cmd, function (err, stdout, stderr) {
 
         console.log("jekyll completed");
 
         // clean up temp file
         fs.unlinkSync("./_custom_config.yml");
 
-        if (err)
-        {
+        if (err) {
             console.log(stderr);
             cb(err);
             return;
@@ -533,11 +588,11 @@ gulp.task("build-site", function(cb)
 
         // fix up alpaca-standalone-sample.html
         console.log("Apply HTML Variables");
-        applyHtmlVariables("./build/site", function() {
+        applyHtmlVariables("./build/site", function () {
 
             // now run post-processors over all of the HTML to insert builder code
             console.log("Annotating Field-Level Documentation");
-            applyFieldAnnotations("./build/site", function() {
+            applyFieldAnnotations("./build/site", function () {
                 console.log("Annotations Completed");
                 cb();
             });
@@ -547,11 +602,10 @@ gulp.task("build-site", function(cb)
 
 });
 
-gulp.task("update-site-full", function(cb) {
+gulp.task("update-site-full", function (cb) {
 
     //console.log("update-site-full start");
     es.concat(
-
         // copy site into web
         gulp.src("build/site/**").pipe(gulp.dest("./build/web")),
 
@@ -562,40 +616,37 @@ gulp.task("update-site-full", function(cb) {
         // copy alpaca into web
         gulp.src("build/alpaca/**")
             .pipe(gulp.dest('./build/web/lib/alpaca'))
-
-    ).pipe(es.wait(function() {
+    ).pipe(es.wait(function () {
         console.log("update-site-full completed");
         cb();
-    })).pipe(notify({message: "Built Alpaca Web Site"}));
+    })).pipe(notify({ message: "Built Alpaca Web Site" }));
 });
 
-gulp.task("update-site-alpaca", function(cb) {
+gulp.task("update-site-alpaca", function (cb) {
 
     //console.log("update-site-alpaca start");
     return es.concat(
-
         // copy alpaca into web
         gulp.src("build/alpaca/**")
             .pipe(gulp.dest('./build/web/lib/alpaca'))
-
-    ).pipe(es.wait(function() {
+    ).pipe(es.wait(function () {
         //console.log("update-site-alpaca completed");
-    })).pipe(notify({message: "Updated Alpaca into Web Site"}));
+    })).pipe(notify({ message: "Updated Alpaca into Web Site" }));
 });
 
 // Rerun the task when a file changes
-gulp.task('watch', function() {
+gulp.task('watch', function () {
 
     // scripts
-    watch(paths.scripts.core, function(files, cb) {
-        runSequence("build-scripts", "update-site-alpaca", function() {
+    watch(paths.scripts.core, function (files, cb) {
+        runSequence("build-scripts", "update-site-alpaca", function () {
             if (cb) {
                 cb();
             }
         });
     });
-    watch(paths.scripts.all_views, function(files, cb) {
-        runSequence("build-scripts", "update-site-alpaca", function() {
+    watch(paths.scripts.all_views, function (files, cb) {
+        runSequence("build-scripts", "update-site-alpaca", function () {
             if (cb) {
                 cb();
             }
@@ -603,8 +654,8 @@ gulp.task('watch', function() {
     });
 
     // templates
-    watch(paths.templates.all, function(files, cb) {
-        runSequence("build-templates", "build-scripts", "update-site-alpaca", function() {
+    watch(paths.templates.all, function (files, cb) {
+        runSequence("build-templates", "build-scripts", "update-site-alpaca", function () {
             if (cb) {
                 cb();
             }
@@ -612,8 +663,8 @@ gulp.task('watch', function() {
     });
 
     // styles
-    watch(paths.styles.all, function(files, cb) {
-        runSequence("build-styles", "update-site-alpaca", function() {
+    watch(paths.styles.all, function (files, cb) {
+        runSequence("build-styles", "update-site-alpaca", function () {
             if (cb) {
                 cb();
             }
@@ -621,8 +672,8 @@ gulp.task('watch', function() {
     });
 
     // web
-    watch(["site/*/**", "site/*", "site/*.*"], function(files, cb) {
-        runSequence("build-site", "update-site-full", function() {
+    watch(["site/*/**", "site/*", "site/*.*"], function (files, cb) {
+        runSequence("build-site", "update-site-full", function () {
             if (cb) {
                 cb();
             }
@@ -630,27 +681,27 @@ gulp.task('watch', function() {
     });
 });
 
-gulp.task("package", function(cb) {
+gulp.task("package", function (cb) {
 
     //console.log("package start");
     fs.writeFileSync("./build/version.properties", "version=" + pkg.version);
 
     /*
-    var jQueryJson = require("./alpaca.jquery.json");
-    jQueryJson.version = pkg.version;
-    fs.writeFileSync("./alpaca.jquery.json", JSON.stringify(jQueryJson, null, "  "));
-    */
+     var jQueryJson = require("./alpaca.jquery.json");
+     jQueryJson.version = pkg.version;
+     fs.writeFileSync("./alpaca.jquery.json", JSON.stringify(jQueryJson, null, "  "));
+     */
 
     //console.log("package completed");
     cb();
 });
 
-gulp.task("default", function(cb) {
+gulp.task("default", function (cb) {
     runSequence(
         "update-release-txt",
         "build-templates",
         ["build-scripts", "build-styles", "package"],
-        function() {
+        function () {
             if (cb) {
                 cb();
             }
@@ -658,11 +709,11 @@ gulp.task("default", function(cb) {
     );
 });
 
-gulp.task("site", function(cb) {
+gulp.task("site", function (cb) {
     runSequence(
         "build-site",
         "update-site-full",
-        function() {
+        function () {
             if (cb) {
                 cb();
             }
@@ -670,7 +721,7 @@ gulp.task("site", function(cb) {
     );
 });
 
-gulp.task("server", ["watch"], function() {
+gulp.task("server", ["watch"], function () {
 
     // NOTE: aaaaa is just a dummy folder to avoid nodemon from setting up a proper watch
     // we control the watch separately
@@ -687,12 +738,12 @@ gulp.task("server", ["watch"], function() {
 
 });
 
-gulp.task("web", function(cb) {
+gulp.task("web", function (cb) {
     runSequence(
         "default",
         "site",
         "server",
-        function() {
+        function () {
             if (cb) {
                 cb();
             }
@@ -700,34 +751,32 @@ gulp.task("web", function(cb) {
     );
 });
 
-gulp.task("dist", function() {
+gulp.task("dist", function () {
 
     return es.concat(
-
         gulp.src("build/alpaca/**/*")
             .pipe(gulp.dest("dist/alpaca")),
 
         gulp.src("lib/**/*")
             .pipe(gulp.dest("dist/lib"))
-
-    ).pipe(es.wait(function() {
+    ).pipe(es.wait(function () {
         // all done
     }));
 });
 
-gulp.task("bump", function(){
+gulp.task("bump", function () {
     gulp.src(VERSIONABLE_FILES).pipe(bump()).pipe(gulp.dest("./"));
 });
 
-gulp.task("bumpMinor", function(){
-    gulp.src(VERSIONABLE_FILES).pipe(bump({type:"minor"})).pipe(gulp.dest("./"));
+gulp.task("bumpMinor", function () {
+    gulp.src(VERSIONABLE_FILES).pipe(bump({ type: "minor" })).pipe(gulp.dest("./"));
 });
 
-gulp.task("bumpMajor", function(){
-    gulp.src(VERSIONABLE_FILES).pipe(bump({type:"major"})).pipe(gulp.dest("./"));
+gulp.task("bumpMajor", function () {
+    gulp.src(VERSIONABLE_FILES).pipe(bump({ type: "major" })).pipe(gulp.dest("./"));
 });
 
-gulp.task("cdn", function(){
+gulp.task("cdn", function () {
 
     var aws = JSON.parse(fs.readFileSync("./_s3.json"));
 
@@ -735,7 +784,7 @@ gulp.task("cdn", function(){
     var publisher = awspublish.create(aws);
     gulp
         .src("./build/alpaca/**/*")
-        .pipe(rename(function(x) {
+        .pipe(rename(function (x) {
             x.dirname = path.join("alpaca", pkg.version, x.dirname);
         }))
         .pipe(publisher.publish())
@@ -748,7 +797,7 @@ gulp.task("cdn", function(){
 // TESTING
 //
 
-gulp.task("testsite", ["watch"], function() {
+gulp.task("testsite", ["watch"], function () {
 
     nodemon({
         script: "server/test-webserver.js"
@@ -756,18 +805,18 @@ gulp.task("testsite", ["watch"], function() {
 
 });
 
-gulp.task("lint", function() {
-  gulp.src(_.flatten([paths.scripts.core, "!lib/**/*"]))
-    .pipe(jshint())
-    .pipe(jshint.reporter("jshint-stylish"));
+gulp.task("lint", function () {
+    gulp.src(_.flatten([paths.scripts.core, "!lib/**/*"]))
+        .pipe(jshint())
+        .pipe(jshint.reporter("jshint-stylish"));
 });
 
-gulp.task("watch:lint", ["lint"], function() {
-  gulp.watch(paths.scripts.core, ["lint"]);
+gulp.task("watch:lint", ["lint"], function () {
+    gulp.watch(paths.scripts.core, ["lint"]);
 });
 
-gulp.task("cucumber", function(cb) {
-    require("child_process").exec("./node_modules/.bin/cucumber.js -r features", function(err, stdout, stderr) {
+gulp.task("cucumber", function (cb) {
+    require("child_process").exec("./node_modules/.bin/cucumber.js -r features", function (err, stdout, stderr) {
         if (err) {
             console.log("Error: " + err);
         } else {
@@ -777,8 +826,7 @@ gulp.task("cucumber", function(cb) {
     });
 });
 
-var generateTable = function(schema)
-{
+var generateTable = function (schema) {
     var table = "";
 
     table += "<table class='table table-bordered table-responsive table-hover table-condensed'>";
@@ -793,8 +841,7 @@ var generateTable = function(schema)
     table += "</thead>";
 
     table += "<tbody>";
-    for (var name in schema.properties)
-    {
+    for (var name in schema.properties) {
         var property = schema.properties[name];
 
         table += "<tr>";
@@ -811,24 +858,20 @@ var generateTable = function(schema)
     return table;
 };
 
-var applyFieldAnnotationsToFile = function(filePath, Alpaca)
-{
+var applyFieldAnnotationsToFile = function (filePath, Alpaca) {
     var text = "" + fs.readFileSync(filePath);
 
     var c1 = text.indexOf("<!-- INCLUDE_API_DOCS:");
-    if (c1 > -1)
-    {
+    if (c1 > -1) {
         var c2 = text.indexOf("-->", c1 + 1);
-        if (c2 > -1)
-        {
+        if (c2 > -1) {
             var type = text.substring(c1 + 22, c2);
             type = type.trim();
 
             console.log(" -> Annotating type: " + type + " in file: " + filePath);
 
             var constructor = Alpaca.fieldClassRegistry[type];
-            if (constructor)
-            {
+            if (constructor) {
                 var instance = new constructor();
                 //domEl, data, options, schema, viewId, connector, errorCallback
 
@@ -839,8 +882,7 @@ var applyFieldAnnotationsToFile = function(filePath, Alpaca)
                 //var optionsOptions = instance.getOptionsForOptions();
 
                 // sort the schema and options
-                var leSort = function(properties)
-                {
+                var leSort = function (properties) {
                     var newProperties = {};
 
                     var keys = [];
@@ -850,8 +892,7 @@ var applyFieldAnnotationsToFile = function(filePath, Alpaca)
 
                     keys.sort();
 
-                    for (var i = 0; i < keys.length; i++)
-                    {
+                    for (var i = 0; i < keys.length; i++) {
                         newProperties[keys[i]] = properties[keys[i]];
                     }
 
@@ -862,19 +903,16 @@ var applyFieldAnnotationsToFile = function(filePath, Alpaca)
 
 
                 // general
-                var stampFunction = function(name, value, link)
-                {
+                var stampFunction = function (name, value, link) {
                     var x = "";
                     x += "<tr>";
                     x += "<td>" + name + "</td>";
                     x += "<td>";
-                    if (link)
-                    {
+                    if (link) {
                         x += "<a href='" + link + "'>";
                     }
                     x += value;
-                    if (link)
-                    {
+                    if (link) {
                         x += "</a>";
                     }
                     x += "</td>";
@@ -899,12 +937,10 @@ var applyFieldAnnotationsToFile = function(filePath, Alpaca)
                     gen += stampFunction("JSON Schema Type(s)", schemaType);
                 }
                 gen += stampFunction("Field Type", fieldType, "/docs/fields/" + fieldType + ".html");
-                if (baseFieldType)
-                {
+                if (baseFieldType) {
                     gen += stampFunction("Base Field Type", baseFieldType, "/docs/fields/" + baseFieldType + ".html");
                 }
-                else
-                {
+                else {
                     gen += stampFunction("Base Field Type", "None");
                 }
                 gen += "</tbody>";
@@ -919,16 +955,14 @@ var applyFieldAnnotationsToFile = function(filePath, Alpaca)
 
                 fs.writeFileSync(filePath, text);
             }
-            else
-            {
+            else {
                 console.log(" -> Could not find field type: " + type);
             }
         }
     }
 };
 
-var applyFieldAnnotations = function(basePath, callback)
-{
+var applyFieldAnnotations = function (basePath, callback) {
     var jsdom = require("jsdom");
     var html = '<html><body><div id="form"></div></html>';
 
@@ -955,21 +989,17 @@ var applyFieldAnnotations = function(basePath, callback)
         $("#form").alpaca({
             "data": "",
             "view": "web-edit",
-            "postRender": function(control)
-            {
+            "postRender": function (control) {
                 var all = wrench.readdirSyncRecursive(basePath);
 
                 var files = [];
-                for (var i = 0; i < all.length; i++)
-                {
-                    if (all[i].indexOf(".html") > -1)
-                    {
+                for (var i = 0; i < all.length; i++) {
+                    if (all[i].indexOf(".html") > -1) {
                         files.push(path.join(basePath, all[i]));
                     }
                 }
 
-                for (var i = 0; i < files.length; i++)
-                {
+                for (var i = 0; i < files.length; i++) {
                     applyFieldAnnotationsToFile(files[i], Alpaca);
                 }
 
@@ -980,30 +1010,25 @@ var applyFieldAnnotations = function(basePath, callback)
     });
 };
 
-var applyHtmlVariables = function(basePath, callback)
-{
+var applyHtmlVariables = function (basePath, callback) {
     var wrench = require("wrench");
     var all = wrench.readdirSyncRecursive(basePath);
 
     var files = [];
-    for (var i = 0; i < all.length; i++)
-    {
-        if (all[i].indexOf(".html") > -1)
-        {
+    for (var i = 0; i < all.length; i++) {
+        if (all[i].indexOf(".html") > -1) {
             files.push(path.join(basePath, all[i]));
         }
     }
 
-    for (var i = 0; i < files.length; i++)
-    {
+    for (var i = 0; i < files.length; i++) {
         applyHtmlVariablesToFile(files[i]);
     }
 
     callback();
 };
 
-var applyHtmlVariablesToFile = function(filePath)
-{
+var applyHtmlVariablesToFile = function (filePath) {
     var text = "" + fs.readFileSync(filePath);
 
     text = doReplace(text, "$ALPACA_VERSION", pkg.version);
@@ -1011,14 +1036,12 @@ var applyHtmlVariablesToFile = function(filePath)
     fs.writeFileSync(filePath, text);
 };
 
-var doReplace = function(text, token, value)
-{
+var doReplace = function (text, token, value) {
     var i = -1;
     do
     {
         i = text.indexOf(token);
-        if (i > -1)
-        {
+        if (i > -1) {
             text = text.replace(token, value);
         }
     }
@@ -1027,10 +1050,9 @@ var doReplace = function(text, token, value)
     return text;
 };
 
-gulp.task("update-release-txt", function() {
+gulp.task("update-release-txt", function () {
 
-    if (fs.existsSync("license.txt"))
-    {
+    if (fs.existsSync("license.txt")) {
         fs.unlinkSync("license.txt");
     }
 
@@ -1045,13 +1067,13 @@ gulp.task("update-release-txt", function() {
 
 });
 
-gulp.task("website", function(cb) {
+gulp.task("website", function (cb) {
     runSequence("default", "site", "server", function () {
         cb();
     });
 });
 
-gulp.task("npmpackage", function(cb) {
+gulp.task("npmpackage", function (cb) {
 
     var npmPkg = JSON.parse(JSON.stringify(pkg));
     delete npmPkg.scripts.postinstall;
@@ -1062,7 +1084,7 @@ gulp.task("npmpackage", function(cb) {
     cb();
 });
 
-gulp.task("_deploy", function(cb) {
+gulp.task("_deploy", function (cb) {
     runSequence("default", "site", "dist", "npmpackage", function () {
         cb();
     });
