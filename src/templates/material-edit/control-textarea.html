@@ -1,0 +1,5 @@
+<script type="text/x-handlebars-template">
+
+    <textarea id="{{id}}" class="mdl-textfield__input" {{#if options.placeholder}}placeholder="{{options.placeholder}}"{{/if}} {{#if options.rows}}rows="{{options.rows}}"{{/if}} {{#if options.cols}}cols="{{options.cols}}"{{/if}} {{#if options.readonly}}readonly="readonly"{{/if}} {{#if name}}name="{{name}}"{{/if}} {{#each options.data}}data-{{fieldId}}="{{{value}}}"{{/each}}/>
+    <label class="{{#if options.labelClass}}{{options.labelClass}}{{/if}} mdl-textfield__label" for="{{id}}">{{{options.label}}}</label>
+</script>

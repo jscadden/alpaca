@@ -1,0 +1,24 @@
+<script type="text/x-handlebars-template">
+
+    {{#if options.hideNone}}
+    {{else}}
+    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+        <input type="radio" class="mdl-radio__button" {{#if ../options.readonly}}readonly="readonly"{{/if}}
+        name="{{../name}}" value="{{value}}" {{#if selected}}checked="checked"{{/if}}>
+        <span class="mdl-radio__label">{{{options.noneLabel}}}</span>
+    </label>
+    {{/if}}
+
+    {{#each selectOptions}}
+    <label class="mdl-radio mdl-js-radio mdl-js-ripple-effect">
+        <input type="radio" class="mdl-radio__button" {{#if ../options.readonly}}readonly="readonly"{{/if}}
+        name="{{../name}}" value="{{value}}" {{#if selected}}checked="checked"{{/if}}>
+        <span class="mdl-radio__label">{{{text}}}</span>
+    </label>
+    {{/each}}
+
+    {{#if options.label}}
+    <div class="alpaca-field-radio__label {{#if options.labelClass}}{{options.labelClass}}{{/if}}">{{{options.label}}}</div>
+    {{/if}}
+
+</script>

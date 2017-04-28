@@ -1,0 +1,19 @@
+<script type="text/x-handlebars-template">
+
+    <div class="nz-toggle-wrap horizontal null">
+        <div class="nz-toggle">
+            <div class="nz-toggle-values">
+                <div class="nz-toggle-value false">No</div>
+                <div class="nz-toggle-value null">?</div>
+                <div class="nz-toggle-value true">Yes</div>
+            </div>
+            <div class="nz-toggle-handle">
+                <span class="nz-toggle-handle__label">?</span>
+            </div>
+        </div>
+    </div>
+
+    {{#if options.label}}
+    <div class="alpaca-field-tristate__label">{{{options.label}}}</div>
+    {{/if}}
+</script>

@@ -1,0 +1,30 @@
+<script type="text/x-handlebars-template">
+
+    {{#if options.multiple}}
+
+        {{#each checkboxOptions}}
+
+
+                <label class="mdl-checkbox mdl-js-checkbox mdl-js-ripple-effect">
+
+                    <input type="checkbox" class="mdl-checkbox__input" data-checkbox-index="{{@index}}" data-checkbox-value="{{value}}" {{#if ../options.readonly}}readonly="readonly"{{/if}} {{#if name}}name="{{name}}"{{/if}} {{#each ../options.data}}data-{{@key}}="{{value}}"{{/each}}/>
+                    <span class="mdl-checkbox__label">{{{text}}}</span>
+
+                </label>
+
+        {{/each}}
+
+    {{else}}
+
+
+            <label>
+
+                <input type="checkbox" class="mdl-checkbox__input" {{#if options.readonly}}readonly="readonly"{{/if}} {{#if name}}name="{{name}}"{{/if}} {{#each options.data}}data-{{@key}}="{{value}}"{{/each}}/>
+                <span class="mdl-checkbox__label">{{{options.rightLabel}}}</span>
+
+            </label>
+
+
+    {{/if}}
+
+</script>
