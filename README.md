@@ -263,6 +263,18 @@ These folks have made numerous contributions to Alpaca over the years:
 + [@sfesiura](https://github.com/sfesiura)
 + [@Felttrip](https://github.com/Felttrip)
 + [@gertingold](https://github.com/gertingold)
++ [@sivapalan](https://github.com/sivapalan)
++ [@caluwaertp](https://github.com/caluwaertp)
++ [@ambischof](https://github.com/ambischof)
++ [@hcmabreu](https://github.com/hcmabreu)
++ [@AzuraGroup](https://github.com/AzuraGroup)
++ [@mlarman70](https://github.com/mlarman70)
++ [@christoph007](https://github.com/christoph007)
++ [@MaZZly](https://github.com/MaZZly)
++ [@maximzmushko](https://github.com/maximzmushko)
++ [@DavidePastore](https://github.com/DavidePastore)
++ [@hauntingEcho](https://github.com/hauntingEcho)
++ [@ml2439](https://github.com/ml2439)
 
 ...and many others via the [Alpaca Web Site](http://www.alpacajs.org) and
 [Alpaca Issues](https://github.com/gitana/alpaca/issues)!

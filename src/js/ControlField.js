@@ -232,7 +232,7 @@
 
                 if (!self.firstUpdateObservableFire)
                 {
-                    if ((typeof(self.data) == "undefined") || self.data == null)
+                    if (Alpaca.isEmpty(self.data))
                     {
                         // do not handle
                     }
@@ -300,20 +300,6 @@
             postRender: function(callback)
             {
                 var self = this;
-
-                /*
-                 // store reference to the label
-                 this.labelDiv = $(this.field).find(".alpaca-controlfield-label");
-                 var labelDiv = $('.alpaca-controlfield-label', this.outerEl);
-                 if (labelDiv.length) {
-                 this.labelDiv = labelDiv;
-                 }
-
-                 var helperDiv = $('.alpaca-controlfield-helper', this.outerEl);
-                 if (helperDiv.length) {
-                 this.helperDiv = helperDiv;
-                 }
-                 */
 
                 this.base(function() {
 
@@ -501,6 +487,9 @@
                         x = self.trigger("keyup", e);
                     }
 
+                    // propagate up with "after_nested_change"
+                    self.triggerWithPropagation("after_nested_change", e);
+
                     return x;
                 });
 
@@ -508,10 +497,14 @@
                     var x = self.onKeyDown.call(self, e);
                     if (x !== false) {
                         x = self.trigger("keydown", e);
+
+                        // propagate up with "before_nested_change"
+                        self.triggerWithPropagation("before_nested_change", e);
                     }
 
                     return x;
                 });
+
             },
 
             /**
@@ -603,6 +596,7 @@
 
                 if (this.control && this.control.length > 0)
                 {
+                    $(this.control).addClass("disabled");
                     $(this.control).prop("disabled", true);
                 }
             },
@@ -620,6 +614,7 @@
 
                 if (this.control && this.control.length > 0)
                 {
+                    $(this.control).removeClass("disabled");
                     $(this.control).prop("disabled", false);
                 }
             },
@@ -639,9 +634,13 @@
             {
                 var array = null;
 
-                if (this.schema && this.schema["enum"])
+                if (this.schema["enum"])
                 {
                     array = this.schema["enum"];
+                }
+                else if (this.schema.type === "array" && this.schema.items && this.schema.items.enum)
+                {
+                    array = this.schema.items.enum;
                 }
 
                 return array;

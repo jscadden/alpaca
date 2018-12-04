@@ -439,7 +439,7 @@
                 }
             }
 
-            if (loadedOptions.view)
+            if (loadedOptions.view && !view)
             {
                 loadedView = loadedOptions.view;
             }
@@ -538,7 +538,7 @@
          * @returns {Boolean} True if the variable is an array, false otherwise.
          */
         isArray: function(obj) {
-            return obj instanceof Array;
+            return Object.prototype.toString.call(obj) == "[object Array]";
         },
 
         /**
@@ -2789,7 +2789,8 @@
         {
             return function(done)
             {
-                if (!optionsReferenceId) {
+                if (!optionsReferenceId)
+                {
                     done();
                 }
                 else if (optionsReferenceId === "#")
@@ -4772,6 +4773,7 @@
     Alpaca.MARKER_CLASS_ARRAY_ITEM_ACTIONBAR = "alpaca-marker-array-field-item-actionbar";
     Alpaca.MARKER_DATA_ARRAY_ITEM_KEY = "data-alpaca-marker-array-field-item-key";
     Alpaca.MARKER_DATA_ARRAY_ITEM_PARENT_FIELD_ID = "data-alpaca-marker-array-field-item-parent-field-id";
+    Alpaca.MARKER_DATA_ARRAY_ITEM_FIELD_ID = "data-alpaca-marker-array-field-item-field-id";
     Alpaca.MARKER_CLASS_CONTAINER_FIELD_ITEM_FIELD = "alpaca-marker-container-field-item-field";
 
     Alpaca.makeCacheKey = function(viewId, scopeType, scopeId, templateId)
@@ -5090,12 +5092,19 @@
     //
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // use this to set the default "drag and drop" behavior
+    // set to true to have toolbars always disabled and drag and drop enabled
+    Alpaca.defaultDragAndDrop = false;
+
     // use this to set the default "sticky" toolbar behavior
     // set to true to have toolbars always stick or undefined to have them appear on hover
     Alpaca.defaultToolbarSticky = undefined;
 
     // use this to have invalid messages show up for read-only fields
     Alpaca.showReadOnlyInvalidState = false;
+
+    // use this to globally control the position of helper text
+    Alpaca.defaultHelpersPosition = "below";
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -5113,5 +5122,19 @@
     {
         return Alpaca.caches[id];
     };
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // EXTERNAL MESSAGE SUPPORT
+    //
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // hook to support external message bundles
+    Alpaca.externalMessage = function(key)
+    {
+        return undefined;
+    };
+
 
 })(jQuery);

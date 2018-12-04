@@ -32,6 +32,10 @@
 
             this.containerItemTemplateDescriptor = self.view.getTemplateDescriptor("container-" + containerItemTemplateType + "-item", self);
 
+            if (!this.options.dragAndDrop) {
+                this.options.dragAndDrop = Alpaca.isEmpty(this.view.dragAndDrop) ? Alpaca.defaultDragAndDrop : this.view.dragAndDrop;
+            }
+
             if (!this.options.toolbarStyle) {
                 this.options.toolbarStyle = Alpaca.isEmpty(this.view.toolbarStyle) ? "button" : this.view.toolbarStyle;
             }
@@ -44,6 +48,13 @@
             }
             if (!this.options.actionbarStyle) {
                 this.options.actionbarStyle = "top";
+            }
+
+            if (!this.options.toolbarPosition) {
+                this.options.toolbarPosition = Alpaca.isEmpty(this.view.toolbarPosition) ? "top" : this.view.toolbarPosition;
+            }
+            if (!this.options.toolbarPosition) {
+                this.options.toolbarPosition = "top";
             }
 
             if (!this.schema.items)
@@ -110,17 +121,7 @@
                 });
             }
 
-            if (typeof(this.data) == "undefined")
-            {
-                this.data = [];
-            }
-
-            if (this.data == null)
-            {
-                this.data = [];
-            }
-
-            if ("" == this.data)
+            if (Alpaca.isEmpty(this.data) || this.data === "")
             {
                 this.data = [];
             }
@@ -149,8 +150,7 @@
 
             if (!Alpaca.isArray(this.data) && !Alpaca.isObject(this.data))
             {
-                Alpaca.logWarn("ArrayField data is not an array: " + JSON.stringify(this.data, null, "  "));
-                return;
+                return Alpaca.logWarn("ArrayField data is not an array: " + JSON.stringify(this.data, null, "  "));
             }
 
             //
@@ -305,8 +305,12 @@
         setValue: function(data)
         {
             var self = this;
+            
+            if (!data) {
+                data = [];
+            }
 
-            if (!data || !Alpaca.isArray(data))
+            if (!Alpaca.isArray(data))
             {
                 return;
             }
@@ -326,7 +330,7 @@
                     }
                     else
                     {
-                        self.removeItem(i);
+                        self.removeItem(i, null, true);
                     }
                 }
             }
@@ -535,6 +539,8 @@
                             "name": control.name,
                             "parentFieldId": self.getId(),
                             "actionbarStyle": self.options.actionbarStyle,
+                            "toolbarLocation": self.options.toolbarLocation,
+                            "dragAndDrop": self.options.dragAndDrop,
                             "view": self.view,
                             "data": itemData
                         });
@@ -615,14 +621,18 @@
             }
 
             // handle $ref
-            if (itemSchema && itemSchema["$ref"])
-            {
-                var schemaReferenceId = itemSchema["$ref"];
-                var optionsReferenceId = itemSchema["$ref"];
-                if (itemOptions["$ref"]) {
-                    optionsReferenceId = itemOptions["$ref"];
-                }
+            var schemaReferenceId = null;
+            if (itemSchema) {
+                schemaReferenceId = itemSchema["$ref"];
+            }
+            var optionsReferenceId = null;
+            if (itemOptions) {
+                optionsReferenceId = itemOptions["$ref"];
+            }
 
+            if (schemaReferenceId || optionsReferenceId)
+            {
+                // walk up to find top field
                 var topField = this;
                 var fieldChain = [topField];
                 while (topField.parent)
@@ -636,19 +646,22 @@
 
                 Alpaca.loadRefSchemaOptions(topField, schemaReferenceId, optionsReferenceId, function(itemSchema, itemOptions) {
 
-                    // walk the field chain to see if we have any circularity
+                    // walk the field chain to see if we have any circularity (for schema)
                     var refCount = 0;
                     for (var i = 0; i < fieldChain.length; i++)
                     {
                         if (fieldChain[i].schema)
                         {
-                            if ( (fieldChain[i].schema.id === schemaReferenceId) || (fieldChain[i].schema.id === "#" + schemaReferenceId))
+                            if (schemaReferenceId)
                             {
-                                refCount++;
-                            }
-                            else if ( (fieldChain[i].schema["$ref"] === schemaReferenceId))
-                            {
-                                refCount++;
+                                if ((fieldChain[i].schema.id === schemaReferenceId) || (fieldChain[i].schema.id === "#" + schemaReferenceId))
+                                {
+                                    refCount++;
+                                }
+                                else if ((fieldChain[i].schema["$ref"] === schemaReferenceId))
+                                {
+                                    refCount++;
+                                }
                             }
                         }
                     }
@@ -661,8 +674,7 @@
                     if (originalItemSchema) {
                         Alpaca.mergeObject(resolvedItemSchema, originalItemSchema);
                     }
-                    if (itemSchema)
-                    {
+                    if (itemSchema) {
                         Alpaca.mergeObject(resolvedItemSchema, itemSchema);
                     }
                     delete resolvedItemSchema.id;
@@ -671,8 +683,7 @@
                     if (originalItemOptions) {
                         Alpaca.mergeObject(resolvedItemOptions, originalItemOptions);
                     }
-                    if (itemOptions)
-                    {
+                    if (itemOptions) {
                         Alpaca.mergeObject(resolvedItemOptions, itemOptions);
                     }
 
@@ -917,15 +928,16 @@
 
                     var idx = v.path.lastIndexOf('/');
                     var lastSegment = v.path.substring(idx+1);
-                    if (lastSegment.indexOf("[") < 0 && lastSegment.indexOf("]") < 0)
+                    var lastIndex = -1;
+                    if (lastSegment.indexOf("[") > 0 && lastSegment.indexOf("]") > 0)
                     {
-                        lastSegment = lastSegment.substring(lastSegment.indexOf("[") + 1, lastSegment.indexOf("]"));
+                        lastIndex = parseInt(lastSegment.substring(lastSegment.indexOf("[") + 1, lastSegment.indexOf("]")));
                     }
 
-                    if (lastSegment !== i)
+                    if (lastIndex !== i)
                     {
                         v.prePath = v.path;
-                        v.path = v.path.substring(0, idx) + "/[" + i + "]";
+                        v.path = v.path.substring(0, idx) + "/" + lastSegment.substring(0, lastSegment.indexOf("[")) + "[" + i + "]";
                     }
 
                     // re-calculate name
@@ -1029,6 +1041,64 @@
                 });
             }
 
+            //
+            // DRAG AND DROP
+            //
+
+            if (self.options.dragAndDrop)
+            {
+                // enable drag and drop
+                document.addEventListener("dragenter", function (event) {
+                    event.preventDefault();
+                }, false);
+    
+                document.addEventListener("dragover", function (event) {
+                    event.preventDefault();
+                }, false);
+    
+                $(self.getFieldEl()).off().on("drop", function(ev) {
+                    ev.preventDefault();
+
+                    var parentFieldId = ev.originalEvent.dataTransfer.getData("parentFieldId");
+                    if (parentFieldId == self.getId())
+                    {
+                        var closestItem = ev.target.closest(".alpaca-container-item[data-alpaca-container-item-parent-field-id='" + parentFieldId +  "']");
+                        if (closestItem) {
+                            var targetIndex = closestItem.dataset.alpacaContainerItemIndex;
+                            var sourceIndex = ev.originalEvent.dataTransfer.getData("sourceIndex");
+                            
+                            self.moveItem(sourceIndex, targetIndex);
+                            ev.stopPropagation();
+                        }
+                    }
+                });
+
+                var items = self.getFieldEl().find(".alpaca-container-item[data-alpaca-container-item-parent-field-id='" + self.getId() +  "']");
+                $(items).each(function(itemIndex) {
+                    $(this).attr("draggable", true);
+                    $(this).off().on("dragstart", function(ev) {
+                        ev.stopPropagation();
+
+                        var event = ev.originalEvent;
+                        event.dataTransfer.setData("sourceIndex", this.dataset.alpacaContainerItemIndex);
+                        event.dataTransfer.setData("parentFieldId", this.dataset.alpacaContainerItemParentFieldId);
+
+                        // find droppable area and highlight
+                        $(this).siblings(".alpaca-container-item").each(function() {
+                            $(this).children(".alpaca-array-item-move").css({
+                                "color": "#2CEAA3"
+                            });
+                        });
+                    });
+                    $(this).on("dragend", function(ev) {
+                        ev.stopPropagation();
+
+                        $(".alpaca-array-item-move").css({
+                            "color": "#333"
+                        });
+                    });
+                });
+            }
 
             //
             // ACTIONBAR
@@ -1329,7 +1399,9 @@
 
                         if (callback)
                         {
-                            callback(item);
+                            Alpaca.nextTick(function() {
+                                callback(item);
+                            });
                         }
 
                     });
@@ -1363,12 +1435,13 @@
 
          * @param {Number} childIndex index of the child to be removed
          * @param [Function] callback called after the child is removed
+         * @param [boolean] force whether to force the removal
          */
-        removeItem: function(childIndex, callback)
+        removeItem: function(childIndex, callback, force)
         {
             var self = this;
 
-            if (this._validateEqualMinItems())
+            if (this._validateEqualMinItems() || force)
             {
                 // unregister the child
                 self.unregisterChild(childIndex);
@@ -1393,7 +1466,9 @@
 
                     if (callback)
                     {
-                        callback();
+                        Alpaca.nextTick(function() {
+                            callback();
+                        });
                     }
 
                 });
@@ -1487,7 +1562,9 @@
 
                     if (callback)
                     {
-                        callback();
+                        Alpaca.nextTick(function() {
+                            callback();
+                        });
                     }
 
                 });
@@ -1608,7 +1685,9 @@
 
                     if (callback)
                     {
-                        callback();
+                        Alpaca.nextTick(function() {
+                            callback();
+                        });
                     }
 
                 });
@@ -1737,6 +1816,12 @@
         getSchemaOfOptions: function() {
             var properties = {
                 "properties": {
+                    "dragAndDrop": {
+                        "title": "Drag and Drop",
+                        "description": "If true, drag and drop is enabled for array items.",
+                        "type": "boolean",
+                        "default": false
+                    },
                     "toolbarSticky": {
                         "title": "Sticky Toolbar",
                         "description": "If true, the array item toolbar will always be enabled.  If false, the toolbar is always disabled.  If undefined or null, the toolbar will appear when hovered over.",
@@ -1748,6 +1833,12 @@
                         "description": "The kind of top-level toolbar to render for the array field.  Either 'button' or 'link'.",
                         "type": "string",
                         "default": "button"
+                    },
+                    "toolbarPosition": {
+                        "title": "Toolbar Position",
+                        "description": "Location of the top-level toolbar to render for the array field.  Either 'top' or 'bottom'.",
+                        "type": "string",
+                        "default": "top"
                     },
                     "actionbarStyle": {
                         "title": "Actionbar Style",
@@ -1853,6 +1944,9 @@
         getOptionsForOptions: function() {
             return Alpaca.merge(this.base(), {
                 "fields": {
+                    "dragAndDrop": {
+                        "type": "checkbox"
+                    },
                     "toolbarSticky": {
                         "type": "checkbox"
                     },

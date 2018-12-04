@@ -8,9 +8,14 @@ legend.alpaca-container-label
     margin-top: 0px;
 }
 
-.alpaca-array-toolbar
+.alpaca-array-toolbar.alpaca-array-toolbar-position-top
 {
     margin-bottom: 10px;
+}
+
+.alpaca-array-toolbar.alpaca-array-toolbar-position-bottom
+{
+    margin-top: 10px;
 }
 
 .alpaca-array-actionbar
@@ -28,9 +33,43 @@ legend.alpaca-container-label
     padding-top: 10px;
 }
 
+.alpaca-array-actionbar.alpaca-array-actionbar-left
+{
+    padding-right: 10px;
+}
+
+.alpaca-array-actionbar.alpaca-array-actionbar-right
+{
+    padding-left: 10px;
+}
+
 .alpaca-array-actionbar, .alpaca-array-actionbar.btn-group
 {
     width: 100%;
+}
+
+.alpaca-array-item-move
+{
+    width: 34px; 
+    height: 34px;
+    padding: 10px;
+}
+
+.alpaca-array-item-flex-container
+{
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+}
+
+.alpaca-array-item-flex-1
+{
+    flex-grow: 1;
+}
+
+.alpaca-array-item-move:hover
+{
+    cursor: move;
 }
 
 .alpaca-array-actionbar
@@ -314,3 +353,15 @@ legend.alpaca-container-label
     margin-top: 20px;
 }
 
+.alpaca-control.disabled label
+{
+    color: #aaa;
+}
+
+.alpaca-required-indicator
+{
+    padding-left: 5px;
+    font-style: italic;
+    font-weight: 200;
+    color: #888;
+}
